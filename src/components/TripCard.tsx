@@ -18,6 +18,8 @@ const lineColors: Record<string, string> = {
 
 export const TripCard: React.FC<TripCardProps> = ({ card, onContextMenu }) => {
   const { currentRole } = useGameStore();
+  const canDrag = currentRole === 'player' && !card.isLocked;
+  
   const {
     attributes,
     listeners,
@@ -27,7 +29,7 @@ export const TripCard: React.FC<TripCardProps> = ({ card, onContextMenu }) => {
     isDragging,
   } = useSortable({
     id: card.id,
-    disabled: card.isLocked,
+    disabled: !canDrag,
   });
 
   const style = {
@@ -48,20 +50,26 @@ export const TripCard: React.FC<TripCardProps> = ({ card, onContextMenu }) => {
     return 'border-slate-600 hover:border-slate-500';
   };
 
+  const getCursorClass = () => {
+    if (card.isLocked) return 'cursor-not-allowed';
+    if (canDrag) return 'cursor-grab';
+    return 'cursor-default';
+  };
+
   return (
     <div
       ref={setNodeRef}
       style={style}
-      {...attributes}
-      {...listeners}
+      {...(canDrag ? attributes : {})}
+      {...(canDrag ? listeners : {})}
       onContextMenu={(e) => onContextMenu(e, card.id)}
       className={`
-        relative p-4 rounded-xl bg-slate-800/80 border-2 cursor-grab
+        relative p-4 rounded-xl bg-slate-800/80 border-2
         transition-all duration-200 select-none
         ${getBorderStyle()}
+        ${getCursorClass()}
         ${isDragging ? 'shadow-2xl scale-105 z-50 opacity-90 cursor-grabbing' : ''}
-        ${card.isLocked ? 'cursor-not-allowed' : ''}
-        hover:shadow-lg hover:-translate-y-0.5
+        ${canDrag ? 'hover:shadow-lg hover:-translate-y-0.5' : ''}
       `}
     >
       <div className="flex items-start justify-between gap-3">

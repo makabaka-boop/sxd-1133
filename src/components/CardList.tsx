@@ -26,8 +26,10 @@ interface CardListProps {
 }
 
 export const CardList: React.FC<CardListProps> = ({ onContextMenu }) => {
-  const { cards, setCards } = useGameStore();
+  const { cards, setCards, currentRole } = useGameStore();
   const [activeId, setActiveId] = useState<string | null>(null);
+
+  const canDrag = currentRole === 'player';
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -41,6 +43,9 @@ export const CardList: React.FC<CardListProps> = ({ onContextMenu }) => {
   );
 
   const handleDragStart = (event: DragStartEvent) => {
+    if (!canDrag) return;
+    const activeCard = cards.find((c) => c.id === event.active.id);
+    if (activeCard?.isLocked) return;
     setActiveId(event.active.id as string);
   };
 
@@ -48,13 +53,66 @@ export const CardList: React.FC<CardListProps> = ({ onContextMenu }) => {
     const { active, over } = event;
     setActiveId(null);
 
-    if (over && active.id !== over.id) {
-      const activeCard = cards.find((c) => c.id === active.id);
-      if (activeCard?.isLocked) return;
+    if (!canDrag || !over || active.id === over.id) return;
 
-      const oldIndex = cards.findIndex((c) => c.id === active.id);
-      const newIndex = cards.findIndex((c) => c.id === over.id);
-      const newCards = arrayMove(cards, oldIndex, newIndex);
+    const activeCard = cards.find((c) => c.id === active.id);
+    if (activeCard?.isLocked) return;
+
+    const oldIndex = cards.findIndex((c) => c.id === active.id);
+    const overIndex = cards.findIndex((c) => c.id === over.id);
+    const overCard = cards[overIndex];
+
+    if (overCard?.isLocked) {
+      let targetIndex = overIndex;
+      if (oldIndex < overIndex) {
+        while (targetIndex < cards.length && cards[targetIndex]?.isLocked) {
+          targetIndex++;
+        }
+        if (targetIndex >= cards.length) {
+          targetIndex = overIndex;
+          while (targetIndex > 0 && cards[targetIndex]?.isLocked) {
+            targetIndex--;
+          }
+        }
+      } else {
+        while (targetIndex >= 0 && cards[targetIndex]?.isLocked) {
+          targetIndex--;
+        }
+        if (targetIndex < 0) {
+          targetIndex = overIndex;
+          while (targetIndex < cards.length && cards[targetIndex]?.isLocked) {
+            targetIndex++;
+          }
+        }
+      }
+      
+      if (targetIndex !== oldIndex && targetIndex >= 0 && targetIndex < cards.length) {
+        let newCards = arrayMove(cards, oldIndex, targetIndex);
+        const lockedCards = newCards.map((c, i) => ({ card: c, originalIndex: i }))
+          .filter(({ card }) => card.isLocked);
+        
+        lockedCards.forEach(({ card, originalIndex }) => {
+          const currentIndex = newCards.findIndex((c) => c.id === card.id);
+          if (currentIndex !== originalIndex) {
+            newCards = arrayMove(newCards, currentIndex, originalIndex);
+          }
+        });
+        
+        setCards(newCards);
+      }
+    } else {
+      let newCards = arrayMove(cards, oldIndex, overIndex);
+      const lockedPositions = cards
+        .map((card, index) => ({ card, index }))
+        .filter(({ card }) => card.isLocked);
+      
+      lockedPositions.forEach(({ card, index }) => {
+        const currentIndex = newCards.findIndex((c) => c.id === card.id);
+        if (currentIndex !== index) {
+          newCards = arrayMove(newCards, currentIndex, index);
+        }
+      });
+      
       setCards(newCards);
     }
   };

@@ -11,7 +11,8 @@ import { useTimer } from '../hooks/useTimer';
 import { ContextMenuState } from '../types';
 
 export const GameBoard: React.FC = () => {
-  const { submitResult, toggleHintPanel, startTime, setStartTime, isGameOver } = useGameStore();
+  const { submitResult, toggleHintPanel, startTime, setStartTime, isGameOver, currentRole } = useGameStore();
+  const canUseHint = currentRole === 'hint';
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({
     show: false,
     x: 0,
@@ -80,10 +81,15 @@ export const GameBoard: React.FC = () => {
               <div className="space-y-2">
                 <button
                   onClick={toggleHintPanel}
-                  className="w-full py-3 px-4 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/50 text-amber-400 font-medium transition-all flex items-center justify-center gap-2"
+                  disabled={!canUseHint}
+                  className={`w-full py-3 px-4 rounded-xl font-medium transition-all flex items-center justify-center gap-2
+                    ${canUseHint
+                      ? 'bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/50 text-amber-400'
+                      : 'bg-slate-700/30 border border-slate-600 text-slate-500 cursor-not-allowed'
+                    }`}
                 >
                   <Lightbulb size={18} />
-                  查看提示
+                  {canUseHint ? '查看提示' : '切换到提示员'}
                 </button>
 
                 <button

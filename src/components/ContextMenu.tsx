@@ -58,7 +58,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, cardId, onClose 
         revealHint();
         onClose();
       },
-      show: currentRole === 'hint' || currentRole === 'player',
+      show: currentRole === 'hint',
     },
     {
       id: 'move-to-end',

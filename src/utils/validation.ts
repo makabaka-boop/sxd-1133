@@ -4,7 +4,16 @@ export function calculateConflicts(cards: TripCard[]): number {
   let conflicts = 0;
 
   for (let i = 0; i < cards.length; i++) {
-    if (cards[i].isAnomaly) {
+    const card = cards[i];
+    if (card.isAnomaly && !card.isPending) {
+      conflicts++;
+    }
+  }
+
+  const sortedCards = [...cards].sort((a, b) => a.correctOrder - b.correctOrder);
+  
+  for (let i = 0; i < cards.length; i++) {
+    if (cards[i].correctOrder !== i && !cards[i].isAnomaly) {
       conflicts++;
     }
   }
@@ -12,6 +21,8 @@ export function calculateConflicts(cards: TripCard[]): number {
   for (let i = 0; i < cards.length - 1; i++) {
     const current = cards[i];
     const next = cards[i + 1];
+
+    if (current.isAnomaly || next.isAnomaly) continue;
 
     const currentTimeIndex = TIME_SLOTS.indexOf(current.timeSlot);
     const nextTimeIndex = TIME_SLOTS.indexOf(next.timeSlot);
