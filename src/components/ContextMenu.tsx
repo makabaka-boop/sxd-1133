@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
-import { Lock, Unlock, HelpCircle, ArrowDown, CheckCircle } from 'lucide-react';
+import { Lock, Unlock, HelpCircle, ArrowDown, CheckCircle, XCircle, AlertTriangle, RotateCcw } from 'lucide-react';
 import { useGameStore } from '../store/gameStore';
+import { ReviewStatus } from '../types';
 
 interface ContextMenuProps {
   x: number;
@@ -10,7 +11,7 @@ interface ContextMenuProps {
 }
 
 export const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, cardId, onClose }) => {
-  const { cards, toggleLockCard, togglePendingCard, moveCardToEnd, revealHint, currentRole } =
+  const { cards, toggleLockCard, togglePendingCard, moveCardToEnd, revealHint, currentRole, setReviewStatus } =
     useGameStore();
   const card = cards.find((c) => c.id === cardId);
 
@@ -28,6 +29,11 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, cardId, onClose 
   }, [onClose]);
 
   if (!card) return null;
+
+  const handleSetReviewStatus = (status: ReviewStatus) => {
+    setReviewStatus(cardId, status);
+    onClose();
+  };
 
   const menuItems = [
     {
@@ -51,6 +57,40 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, cardId, onClose 
       show: true,
     },
     {
+      id: 'divider-1',
+      isDivider: true,
+      show: currentRole === 'reviewer' && card.isAnomaly,
+    },
+    {
+      id: 'confirm-anomaly',
+      icon: AlertTriangle,
+      label: '已确认异常',
+      onClick: () => handleSetReviewStatus('confirmed'),
+      show: currentRole === 'reviewer' && card.isAnomaly && card.reviewStatus !== 'confirmed',
+      className: 'text-red-400 hover:bg-red-500/20',
+    },
+    {
+      id: 'mark-false-positive',
+      icon: XCircle,
+      label: '标记为误报',
+      onClick: () => handleSetReviewStatus('false_positive'),
+      show: currentRole === 'reviewer' && card.isAnomaly && card.reviewStatus !== 'false_positive',
+      className: 'text-amber-400 hover:bg-amber-500/20',
+    },
+    {
+      id: 'reset-review',
+      icon: RotateCcw,
+      label: '重置复核状态',
+      onClick: () => handleSetReviewStatus('unreviewed'),
+      show: currentRole === 'reviewer' && card.isAnomaly && card.reviewStatus !== 'unreviewed',
+      className: 'text-slate-400 hover:bg-slate-700',
+    },
+    {
+      id: 'divider-2',
+      isDivider: true,
+      show: currentRole === 'hint',
+    },
+    {
       id: 'show-hint',
       icon: HelpCircle,
       label: '查看提示',
@@ -59,6 +99,11 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, cardId, onClose 
         onClose();
       },
       show: currentRole === 'hint',
+    },
+    {
+      id: 'divider-3',
+      isDivider: true,
+      show: !card.isLocked,
     },
     {
       id: 'move-to-end',
@@ -81,16 +126,21 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, cardId, onClose 
       }}
       onClick={(e) => e.stopPropagation()}
     >
-      {menuItems.map((item) => (
-        <button
-          key={item.id}
-          className="w-full flex items-center gap-3 px-4 py-2 text-sm text-slate-200 hover:bg-slate-700 transition-colors"
-          onClick={item.onClick}
-        >
-          <item.icon size={16} className="text-slate-400" />
-          <span>{item.label}</span>
-        </button>
-      ))}
+      {menuItems.map((item) => {
+        if ('isDivider' in item && item.isDivider) {
+          return <div key={item.id} className="my-1 border-t border-slate-700" />;
+        }
+        return (
+          <button
+            key={item.id}
+            className={`w-full flex items-center gap-3 px-4 py-2 text-sm transition-colors ${item.className || 'text-slate-200 hover:bg-slate-700'}`}
+            onClick={item.onClick}
+          >
+            <item.icon size={16} className="text-slate-400" />
+            <span>{item.label}</span>
+          </button>
+        );
+      })}
     </div>
   );
 };

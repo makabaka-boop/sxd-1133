@@ -1,15 +1,19 @@
 import React from 'react';
-import { Trophy, Clock, AlertTriangle, Lightbulb, RotateCcw, X } from 'lucide-react';
+import { Trophy, Clock, AlertTriangle, Lightbulb, RotateCcw, X, CheckCircle, XCircle, Search } from 'lucide-react';
 import { useGameStore } from '../store/gameStore';
 import { formatTime, getScoreRating } from '../utils/scoring';
 
 export const ResultModal: React.FC = () => {
-  const { showResultModal, closeResultModal, restartGame, score, elapsedTime, conflictCount, usedHints } =
+  const { showResultModal, closeResultModal, restartGame, score, elapsedTime, conflictCount, usedHints, reviewStats } =
     useGameStore();
 
   if (!showResultModal) return null;
 
   const rating = getScoreRating(score);
+
+  const unreviewedPenalty = reviewStats.unreviewed * 20;
+  const falsePositivePenalty = reviewStats.falsePositive * 10;
+  const confirmedBonus = reviewStats.confirmed * 15;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -44,7 +48,7 @@ export const ResultModal: React.FC = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-3 mb-6">
+          <div className="grid grid-cols-3 gap-3 mb-4">
             <div className="text-center p-3 rounded-xl bg-slate-700/50">
               <Clock size={20} className="mx-auto text-blue-400 mb-1" />
               <p className="text-xl font-bold text-white">{formatTime(elapsedTime)}</p>
@@ -59,6 +63,31 @@ export const ResultModal: React.FC = () => {
               <Lightbulb size={20} className="mx-auto text-yellow-400 mb-1" />
               <p className="text-xl font-bold text-white">{usedHints}</p>
               <p className="text-xs text-slate-400">使用提示</p>
+            </div>
+          </div>
+
+          <div className="mb-6 p-4 rounded-xl bg-slate-700/30 border border-slate-600">
+            <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+              <Search size={16} className="text-blue-400" />
+              复核统计
+            </h3>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="text-center p-2 rounded-lg bg-slate-800/50">
+                <p className="text-lg font-bold text-slate-300">{reviewStats.totalAnomalies}</p>
+                <p className="text-xs text-slate-500">异常卡总数</p>
+              </div>
+              <div className="text-center p-2 rounded-lg bg-red-500/10">
+                <p className="text-lg font-bold text-red-400">{reviewStats.confirmed}</p>
+                <p className="text-xs text-slate-500">已确认异常</p>
+              </div>
+              <div className="text-center p-2 rounded-lg bg-amber-500/10">
+                <p className="text-lg font-bold text-amber-400">{reviewStats.falsePositive}</p>
+                <p className="text-xs text-slate-500">误报</p>
+              </div>
+              <div className="text-center p-2 rounded-lg bg-slate-700/50">
+                <p className="text-lg font-bold text-slate-400">{reviewStats.unreviewed}</p>
+                <p className="text-xs text-slate-500">未复核</p>
+              </div>
             </div>
           </div>
 
@@ -79,6 +108,33 @@ export const ResultModal: React.FC = () => {
               <span>提示惩罚</span>
               <span className="text-red-400">-{usedHints * 30}</span>
             </p>
+            {reviewStats.confirmed > 0 && (
+              <p className="text-sm text-slate-400 flex justify-between">
+                <span className="flex items-center gap-1">
+                  <CheckCircle size={12} className="text-green-400" />
+                  确认异常奖励
+                </span>
+                <span className="text-green-400">+{confirmedBonus}</span>
+              </p>
+            )}
+            {reviewStats.unreviewed > 0 && (
+              <p className="text-sm text-slate-400 flex justify-between">
+                <span className="flex items-center gap-1">
+                  <AlertTriangle size={12} className="text-red-400" />
+                  未复核惩罚
+                </span>
+                <span className="text-red-400">-{unreviewedPenalty}</span>
+              </p>
+            )}
+            {reviewStats.falsePositive > 0 && (
+              <p className="text-sm text-slate-400 flex justify-between">
+                <span className="flex items-center gap-1">
+                  <XCircle size={12} className="text-amber-400" />
+                  误报惩罚
+                </span>
+                <span className="text-red-400">-{falsePositivePenalty}</span>
+              </p>
+            )}
             <div className="border-t border-slate-600 pt-2 mt-2">
               <p className="text-sm font-semibold flex justify-between">
                 <span className="text-slate-300">最终得分</span>

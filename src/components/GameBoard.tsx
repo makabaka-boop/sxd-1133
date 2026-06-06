@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Send, Lightbulb, RotateCcw, Info } from 'lucide-react';
+import { Send, Lightbulb, RotateCcw, Info, AlertTriangle, X } from 'lucide-react';
 import { CardList } from './CardList';
 import { ContextMenu } from './ContextMenu';
 import { StatusBar } from './StatusBar';
@@ -11,7 +11,7 @@ import { useTimer } from '../hooks/useTimer';
 import { ContextMenuState } from '../types';
 
 export const GameBoard: React.FC = () => {
-  const { submitResult, toggleHintPanel, startTime, setStartTime, isGameOver, currentRole } = useGameStore();
+  const { submitResult, toggleHintPanel, startTime, setStartTime, isGameOver, currentRole, showSubmitWarning, toggleSubmitWarning, reviewStats } = useGameStore();
   const canUseHint = currentRole === 'hint';
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({
     show: false,
@@ -40,6 +40,18 @@ export const GameBoard: React.FC = () => {
 
   const closeContextMenu = () => {
     setContextMenu((prev) => ({ ...prev, show: false, cardId: null }));
+  };
+
+  const handleSubmit = () => {
+    submitResult();
+  };
+
+  const handleConfirmSubmit = () => {
+    submitResult();
+  };
+
+  const handleCancelWarning = () => {
+    toggleSubmitWarning(false);
   };
 
   return (
@@ -93,7 +105,7 @@ export const GameBoard: React.FC = () => {
                 </button>
 
                 <button
-                  onClick={submitResult}
+                  onClick={handleSubmit}
                   disabled={isGameOver}
                   className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 disabled:from-slate-600 disabled:to-slate-600 disabled:cursor-not-allowed text-white font-semibold transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/25"
                 >
@@ -131,6 +143,70 @@ export const GameBoard: React.FC = () => {
           cardId={contextMenu.cardId}
           onClose={closeContextMenu}
         />
+      )}
+
+      {showSubmitWarning && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={handleCancelWarning}
+          />
+          <div className="relative w-full max-w-md bg-slate-800 rounded-2xl shadow-2xl border border-amber-500/50 overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                  <AlertTriangle size={24} className="text-amber-400" />
+                  提交前检查
+                </h2>
+                <button
+                  onClick={handleCancelWarning}
+                  className="p-1.5 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="space-y-3 mb-6">
+                {reviewStats.unreviewed > 0 && (
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-red-500/10 border border-red-500/30">
+                    <AlertTriangle size={20} className="text-red-400 flex-shrink-0" />
+                    <div>
+                      <p className="text-white font-medium">存在未复核的异常卡片</p>
+                      <p className="text-sm text-slate-400">还有 {reviewStats.unreviewed} 张异常卡片未完成复核</p>
+                    </div>
+                  </div>
+                )}
+                {reviewStats.pendingCards > 0 && (
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/30">
+                    <AlertTriangle size={20} className="text-yellow-400 flex-shrink-0" />
+                    <div>
+                      <p className="text-white font-medium">存在待处理卡片</p>
+                      <p className="text-sm text-slate-400">还有 {reviewStats.pendingCards} 张卡片标记为待核对</p>
+                    </div>
+                  </div>
+                )}
+                <p className="text-sm text-slate-400 mt-2">
+                  建议切换到复核员角色完成所有复核后再提交，否则可能影响最终得分。
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={handleCancelWarning}
+                  className="flex-1 py-3 px-4 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-medium transition-all"
+                >
+                  返回修改
+                </button>
+                <button
+                  onClick={handleConfirmSubmit}
+                  className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold transition-all shadow-lg shadow-emerald-500/25"
+                >
+                  继续提交
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       <HintPanel />

@@ -1,8 +1,19 @@
 import { create } from 'zustand';
-import { GameState, Role, TripCard } from '../types';
+import { GameState, Role, TripCard, ReviewStatus, ReviewStats } from '../types';
 import { generateCards, generateHints } from '../utils/cardGenerator';
 import { calculateConflicts, isCorrectOrder } from '../utils/validation';
 import { calculateScore } from '../utils/scoring';
+
+function calculateReviewStats(cards: TripCard[]): ReviewStats {
+  const anomalyCards = cards.filter((c) => c.isAnomaly);
+  return {
+    totalAnomalies: anomalyCards.length,
+    confirmed: anomalyCards.filter((c) => c.reviewStatus === 'confirmed').length,
+    falsePositive: anomalyCards.filter((c) => c.reviewStatus === 'false_positive').length,
+    unreviewed: anomalyCards.filter((c) => c.reviewStatus === 'unreviewed').length,
+    pendingCards: cards.filter((c) => c.isPending).length,
+  };
+}
 
 interface GameActions {
   initGame: () => void;
@@ -11,13 +22,16 @@ interface GameActions {
   updateElapsedTime: (time: number) => void;
   toggleLockCard: (cardId: string) => void;
   togglePendingCard: (cardId: string) => void;
+  setReviewStatus: (cardId: string, status: ReviewStatus) => void;
   moveCardToEnd: (cardId: string) => void;
   revealHint: () => void;
   toggleHintPanel: () => void;
+  toggleSubmitWarning: (show: boolean) => void;
   submitResult: () => void;
   closeResultModal: () => void;
   restartGame: () => void;
   setStartTime: () => void;
+  updateReviewStats: () => void;
 }
 
 const initialCards = generateCards();
@@ -39,6 +53,8 @@ const getInitialState = (): GameState => {
     showResultModal: false,
     availableHints: hints,
     revealedHints: [],
+    showSubmitWarning: false,
+    reviewStats: calculateReviewStats(cards),
   };
 };
 
@@ -70,11 +86,37 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   },
 
   togglePendingCard: (cardId: string) => {
-    set((state) => ({
-      cards: state.cards.map((card) =>
+    set((state) => {
+      const newCards = state.cards.map((card) =>
         card.id === cardId ? { ...card, isPending: !card.isPending } : card
-      ),
+      );
+      return {
+        cards: newCards,
+        reviewStats: calculateReviewStats(newCards),
+      };
+    });
+  },
+
+  setReviewStatus: (cardId: string, status: ReviewStatus) => {
+    set((state) => {
+      const newCards = state.cards.map((card) =>
+        card.id === cardId ? { ...card, reviewStatus: status } : card
+      );
+      return {
+        cards: newCards,
+        reviewStats: calculateReviewStats(newCards),
+      };
+    });
+  },
+
+  updateReviewStats: () => {
+    set((state) => ({
+      reviewStats: calculateReviewStats(state.cards),
     }));
+  },
+
+  toggleSubmitWarning: (show: boolean) => {
+    set({ showSubmitWarning: show });
   },
 
   moveCardToEnd: (cardId: string) => {
@@ -105,14 +147,25 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
 
   submitResult: () => {
     const state = get();
+    const stats = calculateReviewStats(state.cards);
+    const hasUnreviewedAnomalies = stats.unreviewed > 0;
+    const hasPendingCards = stats.pendingCards > 0;
+
+    if ((hasUnreviewedAnomalies || hasPendingCards) && !state.showSubmitWarning) {
+      set({ showSubmitWarning: true });
+      return;
+    }
+
     const conflicts = calculateConflicts(state.cards);
-    const score = calculateScore(state.elapsedTime, conflicts, state.usedHints);
+    const score = calculateScore(state.elapsedTime, conflicts, state.usedHints, stats);
     
     set({
       conflictCount: conflicts,
       score,
       isGameOver: true,
       showResultModal: true,
+      showSubmitWarning: false,
+      reviewStats: stats,
     });
   },
 
@@ -136,6 +189,8 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       showResultModal: false,
       availableHints: hints,
       revealedHints: [],
+      showSubmitWarning: false,
+      reviewStats: calculateReviewStats(cards),
     });
   },
 

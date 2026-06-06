@@ -1,14 +1,27 @@
+import { ReviewStats } from '../types';
+
 export function calculateScore(
   elapsedTime: number,
   conflictCount: number,
-  usedHints: number
+  usedHints: number,
+  reviewStats?: ReviewStats
 ): number {
   const baseScore = 1000;
   const timePenalty = Math.floor(elapsedTime / 10) * 5;
   const conflictPenalty = conflictCount * 50;
   const hintPenalty = usedHints * 30;
 
-  const finalScore = baseScore - timePenalty - conflictPenalty - hintPenalty;
+  let unreviewedPenalty = 0;
+  let falsePositivePenalty = 0;
+  let confirmedBonus = 0;
+
+  if (reviewStats) {
+    unreviewedPenalty = reviewStats.unreviewed * 20;
+    falsePositivePenalty = reviewStats.falsePositive * 10;
+    confirmedBonus = reviewStats.confirmed * 15;
+  }
+
+  const finalScore = baseScore - timePenalty - conflictPenalty - hintPenalty - unreviewedPenalty - falsePositivePenalty + confirmedBonus;
   return Math.max(0, finalScore);
 }
 

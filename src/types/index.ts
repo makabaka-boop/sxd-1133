@@ -1,4 +1,5 @@
 export type Role = 'player' | 'hint' | 'reviewer';
+export type ReviewStatus = 'unreviewed' | 'confirmed' | 'false_positive';
 
 export interface TripCard {
   id: string;
@@ -11,6 +12,15 @@ export interface TripCard {
   isPending: boolean;
   isAnomaly: boolean;
   anomalyReason?: string;
+  reviewStatus: ReviewStatus;
+}
+
+export interface ReviewStats {
+  totalAnomalies: number;
+  confirmed: number;
+  falsePositive: number;
+  unreviewed: number;
+  pendingCards: number;
 }
 
 export interface GameState {
@@ -26,6 +36,8 @@ export interface GameState {
   showResultModal: boolean;
   availableHints: string[];
   revealedHints: string[];
+  showSubmitWarning: boolean;
+  reviewStats: ReviewStats;
 }
 
 export interface ContextMenuState {

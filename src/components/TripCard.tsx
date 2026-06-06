@@ -1,7 +1,7 @@
 import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Lock, HelpCircle, AlertTriangle, MapPin, Clock, Star } from 'lucide-react';
+import { Lock, HelpCircle, AlertTriangle, MapPin, Clock, Star, CheckCircle, XCircle } from 'lucide-react';
 import { TripCard as TripCardType } from '../types';
 import { useGameStore } from '../store/gameStore';
 
@@ -39,6 +39,12 @@ export const TripCard: React.FC<TripCardProps> = ({ card, onContextMenu }) => {
 
   const getBorderStyle = () => {
     if (card.isAnomaly && currentRole === 'reviewer') {
+      if (card.reviewStatus === 'confirmed') {
+        return 'border-red-500 ring-2 ring-red-500/50';
+      }
+      if (card.reviewStatus === 'false_positive') {
+        return 'border-amber-500 ring-2 ring-amber-500/50';
+      }
       return 'border-red-500 ring-2 ring-red-500/30';
     }
     if (card.isPending) {
@@ -48,6 +54,33 @@ export const TripCard: React.FC<TripCardProps> = ({ card, onContextMenu }) => {
       return 'border-slate-600 opacity-70';
     }
     return 'border-slate-600 hover:border-slate-500';
+  };
+
+  const getReviewBadge = () => {
+    if (!card.isAnomaly || currentRole !== 'reviewer') return null;
+    
+    switch (card.reviewStatus) {
+      case 'confirmed':
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-red-500/20 text-red-400 border border-red-500/30">
+            <CheckCircle size={12} />
+            已确认异常
+          </span>
+        );
+      case 'false_positive':
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-amber-500/20 text-amber-400 border border-amber-500/30">
+            <XCircle size={12} />
+            误报
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-slate-700/50 text-slate-400 border border-slate-600">
+            待复核
+          </span>
+        );
+    }
   };
 
   const getCursorClass = () => {
@@ -74,13 +107,14 @@ export const TripCard: React.FC<TripCardProps> = ({ card, onContextMenu }) => {
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
             <span
               className={`px-2 py-0.5 rounded text-xs font-bold text-white bg-gradient-to-r ${lineColors[card.line] || 'from-slate-500 to-slate-600'}`}
             >
               {card.line}
             </span>
             <h3 className="font-semibold text-white text-lg">{card.station}</h3>
+            {getReviewBadge()}
           </div>
 
           <div className="flex items-center gap-4 text-sm text-slate-400">
@@ -108,8 +142,14 @@ export const TripCard: React.FC<TripCardProps> = ({ card, onContextMenu }) => {
           {card.isPending && (
             <HelpCircle size={16} className="text-yellow-400" />
           )}
-          {card.isAnomaly && currentRole === 'reviewer' && (
+          {card.isAnomaly && currentRole === 'reviewer' && card.reviewStatus === 'unreviewed' && (
             <AlertTriangle size={16} className="text-red-400" />
+          )}
+          {card.isAnomaly && currentRole === 'reviewer' && card.reviewStatus === 'confirmed' && (
+            <CheckCircle size={16} className="text-red-400" fill="currentColor" />
+          )}
+          {card.isAnomaly && currentRole === 'reviewer' && card.reviewStatus === 'false_positive' && (
+            <XCircle size={16} className="text-amber-400" fill="currentColor" />
           )}
         </div>
       </div>

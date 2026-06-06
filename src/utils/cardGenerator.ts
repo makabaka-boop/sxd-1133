@@ -42,6 +42,7 @@ export function generateCards(): TripCard[] {
         isLocked: false,
         isPending: false,
         isAnomaly: false,
+        reviewStatus: 'unreviewed',
       });
     });
   });
@@ -51,6 +52,7 @@ export function generateCards(): TripCard[] {
   anomalyCard.isAnomaly = true;
   anomalyCard.priority = 6;
   anomalyCard.anomalyReason = '优先级异常（超出正常范围1-5）';
+  anomalyCard.reviewStatus = 'unreviewed';
 
   cards[anomalyIndex] = anomalyCard;
 
